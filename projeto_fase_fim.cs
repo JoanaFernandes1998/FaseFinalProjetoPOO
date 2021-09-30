@@ -355,18 +355,18 @@ class MainClass
 
   public static void AlunoLogin() { 
     Console.WriteLine("----- Login do Aluno -----");
-    ClienteListar();
+    AlunoListar();
     Console.Write("Informe o código do aluno para logar: ");
     int id = int.Parse(Console.ReadLine());
     // Procura o aluno com esse id
     alunoLogin = naluno.Listar(id);
-    // Abre o carrinho de compra do cliente
+    // Abre o carrinho de compra do aluno
     alunoVenda = nvenda.ListarCarrinho(alunoLogin);
   }
   public static void AlunoLogout() { 
     Console.WriteLine("----- Logout do Aluno -----");
     if (alunoVenda != null) nvenda.Inserir(alunoVenda, true);
-    // Faz o logout do cliente
+    // Faz o logout do aluno
     alunoLogin = null;
     alunoVenda = null;
   }
@@ -602,6 +602,167 @@ class Matricula
     }
 }
 
+class Venda {
+  // Atributos da Venda
+  private int id;
+  private DateTime data;
+  private bool carrinho;
+  // Associação entre venda e aluno
+  private Aluno aluno;
+  // Associação entre venda e itens de venda
+  private List<VendaItem> itens = new List<VendaItem>();
+
+  public Venda(DateTime data, Aluno aluno) {
+    this.data = data;
+    this.carrinho = true;
+    this.aluno = aluno;
+  }
+  
+  public void SetId(int id) {
+    this.id = id;
+  }
+  public void SetData(DateTime data) {
+    this.data = data;
+  }
+  public void SetCarrinho(bool carrinho) {
+    this.carrinho = carrinho;
+  }
+  public void SetAluno(Aluno aluno) {
+    this.aluno = aluno;
+  }
+  public int GetId() {
+    return id;
+  }
+  public DateTime GetData() {
+    return data;
+  }
+  public bool GetCarrinho() {
+    return carrinho;
+  }
+  public Aluno GetAluno() {
+    return aluno;
+  }
+  public override string ToString() {
+    if (carrinho) 
+      return "Compra: " + id + " - " + data.ToString("dd/MM/yyyy") + " - Aluno: " + aluno.Nome + " - carrinho";
+    else
+      return "Compra: " + id + " - " + data.ToString("dd/MM/yyyy") + " - Aluno: " + aluno.Nome;
+  }
+
+  private VendaItem ItemListar(Matricula p) {
+    // Verificar se a matrícula p já está na lista de itens
+    foreach(VendaItem vi in itens) 
+      if (vi.GetMatricula() == p) return vi;
+    return null;  
+  }
+
+  public List<VendaItem> ItemListar() {
+    // Retornar a lista de itens
+    return itens;
+  }
+
+  public void ItemInserir(int qtd, Matricula p) {
+    // Verificar se a matricula p já está na lista de itens
+    VendaItem item = ItemListar(p);
+    if (item == null) {
+      item = new VendaItem(qtd, p);
+      itens.Add(item);
+    }
+    else
+      item.SetQtd(item.GetQtd() + qtd);
+  }
+
+  public void ItemExcluir() {
+    // Remove todos os itens da lista 
+    itens.Clear();
+  }
+}
+
+class VendaItem {
+  // Atributos do item de VendaItem
+  private int qtd;
+  private double preco;
+  // Associação entre VendaItem e Matricula
+  private Matricula matricula;
+  public VendaItem(int qtd, Matricula matricula) {
+    this.qtd = qtd;
+    this.preco = matricula.GetPreco();
+    this.matricula = matricula;
+  }
+  public void SetQtd(int qtd) {
+    this.qtd = qtd;
+  }
+  public void SetPreco(double preco) {
+    this.preco = preco;
+  }
+  public void SetMatricula(Matricula matricula) {
+    this.matricula = matricula;
+  }
+  public int GetQtd() {
+    return qtd;
+  }
+  public double GetPreco() {
+    return preco;
+  }
+  public Matricula GetMatricula() {
+    return matricula;
+  }
+  public override string ToString() {
+    return matricula.GetDescricao() + " - Qtd:" + qtd + " - Preço: " + preco.ToString("c2");
+  }
+}
+
+class NVenda {
+  private List<Venda> vendas = new List<Venda>();
+
+  public List<Venda> Listar() {
+    // Retorna uma lista com as vendas cadastradas
+    return vendas;
+  }
+
+  public List<Venda> Listar(Aluno c) {
+    // Retorna uma lista com as vendas cadastradas do aluno c
+    List<Venda> vs = new List<Venda>();
+    foreach(Venda v in vendas)
+      if (v.GetAluno() == c) vs.Add(v);
+    return vs;
+  }
+
+  public Venda ListarCarrinho(Aluno c) {
+    // Retorna uma lista com as vendas cadastradas do cliente c
+    foreach(Venda v in vendas)
+      if (v.GetAluno() == c && v.GetCarrinho()) return v;
+    return null;
+  }
+
+  public void Inserir(Venda v, bool carrinho) {
+    // Gera o id da vendas
+    int max = 0;
+    foreach (Venda obj in vendas)
+      if (obj.GetId() > max) max = obj.GetId();
+    v.SetId(max + 1);
+    // Inserir a nova na lista de vendas
+    vendas.Add(v);
+    // Define o atributo carrinho
+    v.SetCarrinho(carrinho);
+  }
+
+  public List<VendaItem> ItemListar(Venda v) {
+    // Retorna os itens da vendas
+    return v.ItemListar();
+  }
+
+  public void ItemInserir(Venda v, int qtd, Matricula p) {
+    // Inserir um item na vendas
+    v.ItemInserir(qtd, p);
+  }  
+
+  public void ItemExcluir(Venda v) {
+    // Remover todos os itens da venda
+    v.ItemExcluir();
+  }
+}
+
 class NCurso {
   private List<Curso> cursos = new List<Curso>();
 
@@ -780,4 +941,5 @@ class NMatricula
     Aluno c = p.GetAluno();
     if (c != null) c.MatriculaExcluir(p);  
   }
+
 }
